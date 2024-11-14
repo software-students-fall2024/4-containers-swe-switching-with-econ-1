@@ -6,8 +6,11 @@ name = "pypi"
 [packages]
 pylint = "*"
 black = "*"
+flask = "*"
+python-dotenv = "*"
 
 [dev-packages]
+pymongo = "*"
 
 [requires]
 python_version = "3.10"
