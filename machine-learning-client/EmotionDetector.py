@@ -13,7 +13,7 @@ SAMPLE_RATE = 16000
 CHANNELS = 1
 FORMAT = pyaudio.paInt16
 CHUNK_SIZE = 1024
-RECORD_SECONDS = 10
+RECORD_SECONDS = 15
 OUTPUT_FILENAME = "output.wav"
 
 # Function to record audio from the microphone
