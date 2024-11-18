@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1>Website Name</h1>
+    <h2>Some Description</h2>
+    <button id="start-button">Start</button>
+    <button id="stop-button">Stop</button>
+    <script defer>
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+
+        startButton.addEventListener('click', function clickedOn() {
+            fetch('/start',{ method: 'POST' })
+            .then(response => response.json())
+            .then(data => console.log(data));
+            startButton.style.display = 'none';
+            stopButton.style.display = 'block';
+        });
+        
+        stopButton.addEventListener('click', function clickedOff() {
+            fetch('/stop',{ method: 'POST' })
+            .then(response => response.json())
+            .then(data => console.log(data));
+            startButton.style.display = 'block';
+            stopButton.style.display = 'none';
+  });
+    </script>
+</body>
+</html>
