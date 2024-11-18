@@ -4,12 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"">
 </head>
 <body>
-    <h1>Website Name</h1>
-    <h2>Some Description</h2>
-    <button id="start-button">Start</button>
-    <button id="stop-button">Stop</button>
+    <h1 class="website-title">Website Name</h1>
+    <h2 class="description">Some Description</h2>
+    <img src="{{ url_for('static', filename='images/RGB-Sound-Wave-No-Background.svg') }}" 
+    alt="Colorful Sound Wave">
+    <div class="buttons-container">
+        <button id="start-button" class="start-button">Start</button>
+        <button id="stop-button" class="stop-button">Stop</button>
+    </div>
     <script defer>
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
