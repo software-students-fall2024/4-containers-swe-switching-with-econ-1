@@ -19,7 +19,7 @@ Functions:
     store_audio_in_mongodb(filename):
     create_flask_app():
 """
-# import os
+import os
 import wave
 import threading
 from flask import Flask, render_template, redirect, url_for, jsonify
@@ -40,8 +40,8 @@ OUTPUT_FILENAME = "output.wav"
 # Global flag to control recording
 recording_flag = threading.Event()
 
-uri = 'mongodb://localhost/projectt=4'
-client = pymongo.MongoClient(uri, server_api=ServerApi('1'))
+uri = os.getenv("MONGO_URI")
+client = pymongo.MongoClient(uri)
 db = client['audio-analysis']
 fs = gridfs.GridFS(db)
 
@@ -69,12 +69,10 @@ def record_audio(filename=OUTPUT_FILENAME):
                     rate=SAMPLE_RATE,
                     input=True,
                     frames_per_buffer=CHUNK_SIZE)
-    
     frames = []
     while recording_flag.is_set():
         data = stream.read(CHUNK_SIZE)
         frames.append(data)
-    
     print("Recording finished.")
     stream.stop_stream()
     stream.close()
@@ -129,11 +127,9 @@ def create_flask_app():
     @flask_app.route('/')
     def home():
         return redirect(url_for('index'))
-    
     @flask_app.route('/index', methods=['GET'])
     def index():
         return render_template('index.html')
-    
     # Start the audio recording
     @flask_app.route('/start', methods=['GET', 'POST'])
     def start():
@@ -141,7 +137,6 @@ def create_flask_app():
         recording_flag.set()
         threading.Thread(target=record_audio).start()
         return jsonify({"status": "Audio processing started"})
-    
     # Stop the audio recording
     @flask_app.route('/stop', methods=(['GET', 'POST']))
     def stop():
@@ -150,8 +145,7 @@ def create_flask_app():
         return jsonify({"status": "Audio processing finished"})
 
     return flask_app
-    
 if __name__ == "__main__":
     app = create_flask_app()
     FLASK_PORT = 3000
-    app.run(port=FLASK_PORT, debug=True)
+    app.run(host="0.0.0.0", port=FLASK_PORT, debug=True)

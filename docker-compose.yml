@@ -1,0 +1,29 @@
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  web_app:
+    build: ./web-app
+    container_name: web_app
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+
+  ml_client:
+    build: ./machine-learning-client
+    container_name: ml_client
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb_data:
