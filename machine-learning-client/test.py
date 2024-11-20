@@ -11,7 +11,7 @@ from emotion_detector import classify_emotion_from_audio
 def test_classify_emotion_from_audio(mock_model, mock_argmax, mock_load):
     """Function to test classify_emotion_from_audio function"""
     # Mock librosa output (Simulated audio and sample rate)
-    mock_load.return_value = (np.random.rand(16000).astype(np.float32), 16000)  
+    mock_load.return_value = (np.random.rand(16000).astype(np.float32), 16000)
 
     # Mock model's output
     mock_logits = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.1, 0.5, 0.1]], dtype=torch.float32)
