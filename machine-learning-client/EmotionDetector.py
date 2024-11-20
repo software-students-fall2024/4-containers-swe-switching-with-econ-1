@@ -1,3 +1,4 @@
+import os
 import pyaudio
 import numpy as np
 import torch
@@ -6,7 +7,6 @@ import wave
 import librosa
 from flask import Flask, request, jsonify
 import pymongo
-import os
 import gridfs
 from bson import ObjectId
 
