@@ -25,13 +25,12 @@ import threading
 from flask import Flask, render_template, redirect, url_for, jsonify
 import pymongo
 # from dotenv import load_dotenv
-from pymongo.server_api import ServerApi
+# from pymongo.server_api import ServerApi
 # from bson.objectid import ObjectId
 import pyaudio
 import gridfs
-from bson import ObjectId
 import requests
-import json
+from pymongo.errors import ConnectionFailure, OperationFailure
 
 # Constants for audio recording
 SAMPLE_RATE = 16000
@@ -44,7 +43,7 @@ OUTPUT_FILENAME = "static/output.wav"
 recording_flag = threading.Event()
 
 # Global fileId to hold ObjectId of the newest file
-newest_file_id = None
+FILE_ID = None
 
 # This lets us know when each recording is finished
 recording_done = threading.Event()
@@ -91,14 +90,15 @@ def record_audio(filename=OUTPUT_FILENAME):
 
     # Save the recorded audio to a file
     with wave.open(filename, 'wb') as wf:
+        wf: "Wave_write"
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(p.get_sample_size(FORMAT))
         wf.setframerate(SAMPLE_RATE)
         wf.writeframes(b''.join(frames))
 
     # Store the audio file in MongoDB
-    global newest_file_id
-    newest_file_id = store_audio_in_mongodb(filename)
+    global FILE_ID
+    FILE_ID = store_audio_in_mongodb(filename)
     recording_done.set()
 
 def store_audio_in_mongodb(filename):
@@ -135,49 +135,45 @@ def create_flask_app():
     try:
         client.admin.command('ping')
         print("Pinged your deployment. You successfully connected to MongoDB!")
-    except Exception as e:
-        print(e)
+    except ConnectionFailure:
+        print("Failed to connect to MongoDB. Please check your connection.")
+    except OperationFailure:
+        print("Operation failed. Please verify your credentials or database configuration.")
     ################### Routes ###################
     # Redirect to the index page
     @flask_app.route('/')
     def home():
         return redirect(url_for('index'))
     @flask_app.route('/index', methods=['GET'])
-    def index(emotion=None):
+    def index():
         return render_template('index.html')
     # Start the audio recording
     @flask_app.route('/start', methods=['GET', 'POST'])
     def start():
-        global recording_flag
         recording_flag.set()
         threading.Thread(target=record_audio).start()
         return jsonify({"status": "Audio processing started"})
     # Stop the audio recording
     @flask_app.route('/stop', methods=(['GET', 'POST']))
     def stop():
-        global recording_flag, newest_file_id
         if recording_flag.is_set():
             recording_flag.clear()
             recording_done.wait()
-            recording_done.clear() 
-            if newest_file_id:
+            recording_done.clear()
+            if FILE_ID:
                 # Send a request with the fileId to ML client
                 url = "http://127.0.0.1:4000/detect-emotion"
-                params = {"fileId": str(newest_file_id)}
-            
-                response = requests.post(url, json=params)
+                params = {"fileId": str(FILE_ID)}
+                response = requests.post(url, json=params, timeout=30)
                 if response.status_code == 200:
                     return jsonify(response.json())
-                else:
-                    print("Error request")
-                    return jsonify({"status": "error sending request!"})
-            else:
-                return jsonify({
-                    "status": "Audio processing finished",
-                    "message": "No file stored"
-                }), 200
-        else:
-            return jsonify({"error": "No recording in progress"}), 400
+                print("Error request")
+                return jsonify({"status": "error sending request!"})
+            return jsonify({
+                "status": "Audio processing finished",
+                "message": "No file stored"
+            }), 200
+        return jsonify({"error": "No recording in progress"}), 400
 
 
     return flask_app
