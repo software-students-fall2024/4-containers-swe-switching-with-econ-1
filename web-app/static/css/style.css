@@ -49,3 +49,13 @@ body {
     background-color: rgb(246, 67, 67);
     display: none;
 }
+
+audio {
+    width: 60%;
+    margin: 0 auto;
+    display: block;
+}
+
+.emotion {
+    text-align: center;
+}

@@ -1,9 +1,14 @@
+import os
 import pyaudio
 import numpy as np
 import torch
 from transformers import Wav2Vec2ForSequenceClassification
 import wave
 import librosa
+from flask import Flask, request, jsonify
+import pymongo
+import gridfs
+from bson import ObjectId
 
 # Load the Wav2Vec2 model for emotion classification
 model = Wav2Vec2ForSequenceClassification.from_pretrained("ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition")
@@ -14,7 +19,12 @@ CHANNELS = 1
 FORMAT = pyaudio.paInt16
 CHUNK_SIZE = 1024
 RECORD_SECONDS = 15
-OUTPUT_FILENAME = "output.wav"
+OUTPUT_FILENAME = "../web-app/static/output.wav"
+
+uri = os.getenv("MONGO_URI", "mongodb://localhost/emotions")
+client = pymongo.MongoClient(uri)
+db = client['audio-analysis']
+fs = gridfs.GridFS(db)
 
 # Function to record audio from the microphone
 def record_audio(filename=OUTPUT_FILENAME, duration=RECORD_SECONDS):
@@ -60,7 +70,7 @@ def classify_emotion_from_audio(filename=OUTPUT_FILENAME):
     predicted_class = torch.argmax(logits, dim=-1).item()
     
     # Emotion labels based on the model's fine-tuning
-    emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+    emotion_labels = ['angry', 'calm', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
     predicted_emotion = emotion_labels[predicted_class]
     
     return predicted_emotion
@@ -75,5 +85,40 @@ def main():
 
     print(f"Emotion Detected: {emotion_result}")
 
+def create_flask_app():
+    """
+    Create and configure the Flask application.
+    This function sets up the Flask app and defines the routes for the web application.
+    Returns:
+        Flask app: The configured Flask application instance.
+    Routes:
+        /detect-emotion, received an ObjectId from webapp and adds the emotion to the 
+        corresponding document, then sends the emotion back to webapp
+    """
+    flask_app = Flask(__name__)
+    flask_app.secret_key ="KEY"
+    try:
+        client.admin.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+    except Exception as e:
+        print(e)
+    ################### Routes ###################
+    # Stop the audio recording
+    @flask_app.route('/detect-emotion', methods=(['POST']))
+    def emotion():
+        webRequest = request.get_json()
+        fileId = webRequest['fileId']
+        emotion = classify_emotion_from_audio()
+        db.fs.files.update_one(
+            {"_id": ObjectId(fileId)},
+            {"$set": {"emotion": emotion}}
+        )
+        print("Sending the emotion:", emotion)
+        return jsonify({"emotion": emotion}), 200
+
+    return flask_app
+
 if __name__ == "__main__":
-    main()
+    app = create_flask_app()
+    FLASK_PORT = 4000
+    app.run(host="0.0.0.0", port=FLASK_PORT, debug=True)

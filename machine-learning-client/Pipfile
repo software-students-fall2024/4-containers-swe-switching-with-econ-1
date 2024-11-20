@@ -6,6 +6,10 @@ name = "pypi"
 [packages]
 pylint = "*"
 black = "*"
+pyaudio = "*"
+torch = "*"
+transformers = "*"
+librosa = "*"
 
 [dev-packages]
 

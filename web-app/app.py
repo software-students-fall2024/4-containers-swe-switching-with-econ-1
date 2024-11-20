@@ -25,22 +25,30 @@ import threading
 from flask import Flask, render_template, redirect, url_for, jsonify
 import pymongo
 # from dotenv import load_dotenv
-from pymongo.server_api import ServerApi
+# from pymongo.server_api import ServerApi
 # from bson.objectid import ObjectId
 import pyaudio
 import gridfs
+import requests
+from pymongo.errors import ConnectionFailure, OperationFailure
 
 # Constants for audio recording
 SAMPLE_RATE = 16000
 CHANNELS = 1
 FORMAT = pyaudio.paInt16
 CHUNK_SIZE = 1024
-OUTPUT_FILENAME = "output.wav"
+OUTPUT_FILENAME = "static/output.wav"
 
 # Global flag to control recording
 recording_flag = threading.Event()
 
-uri = os.getenv("MONGO_URI")
+# Global fileId to hold ObjectId of the newest file
+FILE_ID = None
+
+# This lets us know when each recording is finished
+recording_done = threading.Event()
+
+uri = os.getenv("MONGO_URI", "mongodb://localhost/emotions")
 client = pymongo.MongoClient(uri)
 db = client['audio-analysis']
 fs = gridfs.GridFS(db)
@@ -49,6 +57,7 @@ fs = gridfs.GridFS(db)
 def record_audio(filename=OUTPUT_FILENAME):
     """
     Records audio from the microphone and saves it to a file.
+
     Args:
         filename (str): The name of the file to save the recorded audio. 
         Defaults to OUTPUT_FILENAME.
@@ -60,6 +69,7 @@ def record_audio(filename=OUTPUT_FILENAME):
     4. Stops and closes the stream once recording is finished.
     5. Saves the recorded audio data to a file in WAV format.
     6. Stores the audio file in MongoDB using the store_audio_in_mongodb function.
+    7. Stores the fileId to the global object
     """
     p = pyaudio.PyAudio()
 
@@ -80,13 +90,16 @@ def record_audio(filename=OUTPUT_FILENAME):
 
     # Save the recorded audio to a file
     with wave.open(filename, 'wb') as wf:
+        wf: "Wave_write"
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(p.get_sample_size(FORMAT))
         wf.setframerate(SAMPLE_RATE)
         wf.writeframes(b''.join(frames))
 
     # Store the audio file in MongoDB
-    store_audio_in_mongodb(filename)
+    global FILE_ID
+    FILE_ID = store_audio_in_mongodb(filename)
+    recording_done.set()
 
 def store_audio_in_mongodb(filename):
     """
@@ -96,10 +109,12 @@ def store_audio_in_mongodb(filename):
         filename (str): The path to the audio file to be stored.
 
     Returns:
-        None
+        The objectID of the stored file
     """
     with open(filename, 'rb') as f:
-        fs.put(f, filename=filename)
+        file_id = fs.put(f, filename=filename)
+    print(f"Audio file '{filename}' stored in MongoDB with ObjectId: {file_id}")
+    return file_id
 
 def create_flask_app():
     """
@@ -120,8 +135,10 @@ def create_flask_app():
     try:
         client.admin.command('ping')
         print("Pinged your deployment. You successfully connected to MongoDB!")
-    except Exception as e:
-        print(e)
+    except ConnectionFailure:
+        print("Failed to connect to MongoDB. Please check your connection.")
+    except OperationFailure:
+        print("Operation failed. Please verify your credentials or database configuration.")
     ################### Routes ###################
     # Redirect to the index page
     @flask_app.route('/')
@@ -133,16 +150,31 @@ def create_flask_app():
     # Start the audio recording
     @flask_app.route('/start', methods=['GET', 'POST'])
     def start():
-        global recording_flag
         recording_flag.set()
         threading.Thread(target=record_audio).start()
         return jsonify({"status": "Audio processing started"})
     # Stop the audio recording
     @flask_app.route('/stop', methods=(['GET', 'POST']))
     def stop():
-        global recording_flag
-        recording_flag.clear()
-        return jsonify({"status": "Audio processing finished"})
+        if recording_flag.is_set():
+            recording_flag.clear()
+            recording_done.wait()
+            recording_done.clear()
+            if FILE_ID:
+                # Send a request with the fileId to ML client
+                url = "http://127.0.0.1:4000/detect-emotion"
+                params = {"fileId": str(FILE_ID)}
+                response = requests.post(url, json=params, timeout=30)
+                if response.status_code == 200:
+                    return jsonify(response.json())
+                print("Error request")
+                return jsonify({"status": "error sending request!"})
+            return jsonify({
+                "status": "Audio processing finished",
+                "message": "No file stored"
+            }), 200
+        return jsonify({"error": "No recording in progress"}), 400
+
 
     return flask_app
 if __name__ == "__main__":
