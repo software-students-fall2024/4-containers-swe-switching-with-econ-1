@@ -24,12 +24,7 @@ jobs:
           pipenv shell --fancy --python $(which python)
       - name: Lint with pylint
         if: ${{ hashFiles(format('{0}/**/*.py', matrix.subdir)) != '' }}
-        run: |
-          cd ${{ matrix.subdir }}
-          echo "[MESSAGES CONTROL]" > .pylintrc
-          echo "disable=W0603" >> .pylintrc
         # you may set pylint to ignore any files or dependencies that make no sense to lint
-        # (We are going to allow global variables)
         run: |
           cd ${{ matrix.subdir }}
           pipenv run pylint **/*.py
