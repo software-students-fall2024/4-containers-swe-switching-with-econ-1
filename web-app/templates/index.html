@@ -9,6 +9,10 @@
 <body>
     <h1 class="website-title">Website Name</h1>
     <h2 class="description">Some Description</h2>
+    <h2 class="emotion"></h2>
+    <audio controls>
+        <source src="{{ url_for('static', filename='output.wav') }}" type="audio/wav">
+    </audio>
     <img src="{{ url_for('static', filename='images/RGB-Sound-Wave-No-Background.svg') }}" 
     alt="Colorful Sound Wave">
     <div class="buttons-container">
@@ -18,6 +22,8 @@
     <script defer>
         const startButton = document.getElementById('start-button');
         const stopButton = document.getElementById('stop-button');
+        const audio = document.getElementsByTagName('audio')[0];
+        audio.style.display = 'none';
 
         startButton.addEventListener('click', function clickedOn() {
             fetch('/start',{ method: 'POST' })
@@ -30,7 +36,14 @@
         stopButton.addEventListener('click', function clickedOff() {
             fetch('/stop',{ method: 'POST' })
             .then(response => response.json())
-            .then(data => console.log(data));
+            .then(data => {
+                console.log(data);
+                const emotion = document.getElementsByClassName('emotion')[0];
+                emotion.textContent = data['emotion'];
+                audio.src= "{{ url_for('static', filename='output.wav') }}?t=" + new Date().getTime();
+                audio.load();
+                audio.style.display = 'block';
+            });
             startButton.style.display = 'block';
             stopButton.style.display = 'none';
   });
