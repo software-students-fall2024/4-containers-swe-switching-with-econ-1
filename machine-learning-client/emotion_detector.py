@@ -1,17 +1,18 @@
+"""Module for audio stuff"""
 import os
 import pyaudio
-import numpy as np
 import torch
 from transformers import Wav2Vec2ForSequenceClassification
-import wave
 import librosa
 from flask import Flask, request, jsonify
 import pymongo
 import gridfs
 from bson import ObjectId
+from pymongo.errors import ConnectionFailure, OperationFailure
 
 # Load the Wav2Vec2 model for emotion classification
-model = Wav2Vec2ForSequenceClassification.from_pretrained("ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition")
+MODEL_NAME = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
+model = Wav2Vec2ForSequenceClassification.from_pretrained(MODEL_NAME)
 
 # Constants for audio recording
 SAMPLE_RATE = 16000
@@ -21,69 +22,33 @@ CHUNK_SIZE = 1024
 RECORD_SECONDS = 15
 OUTPUT_FILENAME = "../web-app/static/output.wav"
 
+# database connection
 uri = os.getenv("MONGO_URI", "mongodb://localhost/emotions")
 client = pymongo.MongoClient(uri)
 db = client['audio-analysis']
 fs = gridfs.GridFS(db)
 
-# Function to record audio from the microphone
-def record_audio(filename=OUTPUT_FILENAME, duration=RECORD_SECONDS):
-    p = pyaudio.PyAudio()
-
-    print(f"Recording for {duration} seconds...")
-    stream = p.open(format=FORMAT,
-                    channels=CHANNELS,
-                    rate=SAMPLE_RATE,
-                    input=True,
-                    frames_per_buffer=CHUNK_SIZE)
-    
-    frames = []
-    for _ in range(0, int(SAMPLE_RATE / CHUNK_SIZE * duration)):
-        data = stream.read(CHUNK_SIZE)
-        frames.append(data)
-    
-    print("Recording finished.")
-    stream.stop_stream()
-    stream.close()
-    p.terminate()
-
-    # Save the recorded audio to a file
-    with wave.open(filename, 'wb') as wf:
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(p.get_sample_size(FORMAT))
-        wf.setframerate(SAMPLE_RATE)
-        wf.writeframes(b''.join(frames))
-
-# Function to classify emotion from the recorded audio using Wav2Vec2
 def classify_emotion_from_audio(filename=OUTPUT_FILENAME):
+    """Function to classify emotion from the recorded audio using Wav2Vec2"""
+
     # Load the audio file and preprocess it
-    speech, sr = librosa.load(filename, sr=SAMPLE_RATE)
-    
+    speech, _ = librosa.load(filename, sr=SAMPLE_RATE)
+
     # Convert speech to tensor (matching the model input type)
-    input_values = torch.tensor(speech).unsqueeze(0)  # Add batch dimension
+    input_values = torch.tensor(speech).unsqueeze(0)
 
     # Pass the audio input to the model
     with torch.no_grad():
         logits = model(input_values).logits
-    
+
     # Get the predicted emotion (highest logit score)
     predicted_class = torch.argmax(logits, dim=-1).item()
-    
+
     # Emotion labels based on the model's fine-tuning
-    emotion_labels = ['angry', 'calm', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
+    emotion_labels = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
     predicted_emotion = emotion_labels[predicted_class]
-    
+
     return predicted_emotion
-
-# Main function to record audio and classify emotion
-def main():
-    # Record audio from the microphone
-    record_audio()
-
-    # Classify the emotion from the recorded audio
-    emotion_result = classify_emotion_from_audio()
-
-    print(f"Emotion Detected: {emotion_result}")
 
 def create_flask_app():
     """
@@ -100,17 +65,19 @@ def create_flask_app():
     try:
         client.admin.command('ping')
         print("Pinged your deployment. You successfully connected to MongoDB!")
-    except Exception as e:
-        print(e)
+    except ConnectionFailure:
+        print("Failed to connect to MongoDB. Please check your connection.")
+    except OperationFailure:
+        print("Operation failed. Please verify your credentials or database configuration.")
     ################### Routes ###################
     # Stop the audio recording
-    @flask_app.route('/detect-emotion', methods=(['POST']))
+    @flask_app.route('/detect-emotion', methods=['POST'])
     def emotion():
-        webRequest = request.get_json()
-        fileId = webRequest['fileId']
+        web_request = request.get_json()
+        file_id = web_request['fileId']
         emotion = classify_emotion_from_audio()
         db.fs.files.update_one(
-            {"_id": ObjectId(fileId)},
+            {"_id": ObjectId(file_id)},
             {"$set": {"emotion": emotion}}
         )
         print("Sending the emotion:", emotion)
