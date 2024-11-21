@@ -10,43 +10,106 @@
     <h1 class="website-title">Emotion Recognizer</h1>
     <h2 class="description">Some Description</h2>
     <h2 class="emotion"></h2>
-    <audio controls>
-        <source src="{{ url_for('static', filename='output.wav') }}" type="audio/wav">
-    </audio>
+
     <img src="{{ url_for('static', filename='images/RGB-Sound-Wave-No-Background.svg') }}" 
     alt="Colorful Sound Wave">
     <div class="buttons-container">
         <button id="start-button" class="start-button">Start</button>
         <button id="stop-button" class="stop-button">Stop</button>
     </div>
-    <script defer>
-        const startButton = document.getElementById('start-button');
-        const stopButton = document.getElementById('stop-button');
-        const audio = document.getElementsByTagName('audio')[0];
-        audio.style.display = 'none';
 
-        startButton.addEventListener('click', function clickedOn() {
-            fetch('/start',{ method: 'POST' })
-            .then(response => response.json())
-            .then(data => console.log(data));
-            startButton.style.display = 'none';
-            stopButton.style.display = 'block';
-        });
-        
-        stopButton.addEventListener('click', function clickedOff() {
-            fetch('/stop',{ method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-                const emotion = document.getElementsByClassName('emotion')[0];
-                emotion.textContent = data['emotion'];
-                audio.src= "{{ url_for('static', filename='output.wav') }}?t=" + new Date().getTime();
-                audio.load();
-                audio.style.display = 'block';
+    <article class="clip" id="sound-clips">
+      </article>
+      
+<script defer>
+    const startButton = document.getElementById('start-button');
+    const stopButton = document.getElementById('stop-button');
+    const soundClips = document.getElementById('sound-clips'); // Container for clips
+    let mediaRecorder;
+    let chunks = []; // Array to store recorded audio data
+
+    // Hide stop button initially
+    stopButton.style.display = 'none';
+
+    // Check if getUserMedia is supported
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        console.log("getUserMedia supported.");
+
+        // Request audio stream
+        navigator.mediaDevices
+            .getUserMedia({ audio: true })
+            .then((stream) => {
+                mediaRecorder = new MediaRecorder(stream);
+
+                // Handle data when available
+                mediaRecorder.ondataavailable = (e) => {
+                    chunks.push(e.data);
+                };
+
+                // Handle when recording stops
+                mediaRecorder.onstop = async () => {
+                    console.log("Recorder stopped!");
+
+                    const clipContainer = document.createElement("article");
+                    const audio = document.createElement("audio");
+                    const deleteButton = document.createElement("button");
+
+                    clipContainer.classList.add("clip");
+                    audio.setAttribute("controls", "");
+                    deleteButton.textContent = "Delete";
+
+                    clipContainer.appendChild(audio);
+                    clipContainer.appendChild(deleteButton);
+                    soundClips.appendChild(clipContainer);
+
+                    // Create audio Blob and URL
+                    const blob = new Blob(chunks, { type: "audio/wav; codecs=opus" });
+                    chunks = [];
+                    const audioURL = window.URL.createObjectURL(blob);
+                    audio.src = audioURL;
+
+                    // Delete button functionality
+                    deleteButton.onclick = () => {
+                        soundClips.removeChild(clipContainer);
+                    };
+                    
+                    // FormData to send blob to flask app
+                    const formData = new FormData();
+                    formData.append('file', blob, 'recording.wav');
+
+                    // Send the blob to '/stop
+                    const response = await fetch('/stop', 
+                        {method: 'POST',
+                        body: formData,
+                    });
+                    response_json = await response.json();
+                    console.log(response_json);
+                    const emotion = document.getElementsByClassName('emotion')[0];
+                    emotion.textContent = response_json['emotion'];
+                };
+
+                // Start recording
+                startButton.onclick = () => {
+                    mediaRecorder.start();
+                    console.log("Recording started!");
+                    startButton.style.display = 'none';
+                    stopButton.style.display = 'block';
+                };
+
+                // Stop recording
+                stopButton.onclick = () => {
+                    mediaRecorder.stop();
+                    console.log("Recording stopped!");
+                    startButton.style.display = 'block';
+                    stopButton.style.display = 'none';
+                };
+            })
+            .catch((err) => {
+                console.error(`The following getUserMedia error occurred: ${err}`);
             });
-            startButton.style.display = 'block';
-            stopButton.style.display = 'none';
-  });
-    </script>
+    } else {
+        console.error("getUserMedia not supported on your browser!");
+    }
+</script>
 </body>
 </html>
