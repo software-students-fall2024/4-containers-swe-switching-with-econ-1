@@ -18,6 +18,7 @@ Functions:
     store_audio_in_mongodb(filename):
     create_flask_app():
 """
+
 import os
 from flask import Flask, render_template, redirect, url_for, jsonify, request
 import pymongo
@@ -67,15 +68,17 @@ def create_flask_app():
         /stop: Stops the audio recording process.
     """
     flask_app = Flask(__name__)
-    flask_app.secret_key ="KEY"
+    flask_app.secret_key = "KEY"
 
     try:
-        client.admin.command('ping')
+        client.admin.command("ping")
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except ConnectionFailure:
         print("Failed to connect to MongoDB. Please check your connection.")
     except OperationFailure:
-        print("Operation failed. Please verify your credentials or database configuration.")
+        print(
+            "Operation failed. Please verify your credentials or database configuration."
+        )
 
     ################### Routes ###################
 
@@ -110,11 +113,19 @@ def create_flask_app():
             return jsonify({"message": "Database error", "error": str(mongo_err)}), 500
         except requests.exceptions.RequestException as req_err:
             print(f"Request Error: {req_err}")
-            return jsonify({"message": "Error connecting to emotion detection service",
-            "error": str(req_err)}), 502
+            return (
+                jsonify(
+                    {
+                        "message": "Error connecting to emotion detection service",
+                        "error": str(req_err),
+                    }
+                ),
+                502,
+            )
+
+return flask_app
 
 
-    return flask_app
 if __name__ == "__main__":
     app = create_flask_app()
     FLASK_PORT = 3000
