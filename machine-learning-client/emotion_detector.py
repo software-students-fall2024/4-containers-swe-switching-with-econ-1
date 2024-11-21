@@ -9,6 +9,7 @@ from flask import Flask, request, jsonify
 import pymongo
 import gridfs
 from bson import ObjectId
+import bson
 from pymongo.errors import ConnectionFailure, OperationFailure
 
 # Load the Wav2Vec2 model for emotion classification
@@ -80,8 +81,21 @@ def create_flask_app():
     # Stop the audio recording
     @flask_app.route("/detect-emotion", methods=["POST"])
     def emotion():
+        # Get the request data
         web_request = request.get_json()
+
+        # Check if fileId exists in the request body
+        if "fileId" not in web_request:
+            return jsonify({"error": "fileId is required"}), 400
+
         file_id = web_request["fileId"]
+
+        # Try to parse the fileId to ObjectId, if invalid return error
+        try:
+            ObjectId(file_id)
+        except bson.errors.InvalidId:
+            return jsonify({"error": "Invalid fileId"}), 400
+
         emotion = classify_emotion_from_audio()
         db.fs.files.update_one(
             {"_id": ObjectId(file_id)}, {"$set": {"emotion": emotion}}
