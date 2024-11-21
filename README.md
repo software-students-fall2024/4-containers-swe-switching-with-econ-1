@@ -4,14 +4,7 @@
 
 Unit Test Badge Here
 
-
-# Containerized App Exercise
-
-Build a containerized app that uses machine learning. See [instructions](./instructions.md) for details.
-
 ## Description
-
-Our project is an audio-based recognition system for activity. It's designed to analyze various sound events, such as clapping, snapping, and hitting a desk and classify them accordingly. The system leverages Docker for scalability, and operates in a containerized environment, as per the instructions.
 
 Our project is an Emotions Recogniton and Mental Health Advice app that used audio-based cognition to analyze and classify the user's emotions. The system analyzes the user's audio input and classifies the emotion, then provides the user with advice based on the detected emotions. The app uses multiple sub-systems and operates in a containerized environment, using Docker.  
 
