@@ -57,6 +57,7 @@ def store_audio_in_mongodb(file_obj, filename):
     print(f"Audio file '{filename}' stored in MongoDB with ObjectId: {file_id}")
     return str(file_id)
 
+
 def get_advice(emotion):
     """
     Get advice based on the detected emotion.
@@ -141,6 +142,7 @@ def get_advice(emotion):
     else:
         advice = "Unknown emotion."
     return advice
+
 
 def create_flask_app():
     """
