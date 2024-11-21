@@ -1,6 +1,7 @@
 """Module for audio stuff"""
 
 import os
+import tempfile
 import pyaudio
 import torch
 from transformers import Wav2Vec2ForSequenceClassification
@@ -10,7 +11,6 @@ import pymongo
 import gridfs
 from bson import ObjectId
 from pymongo.errors import ConnectionFailure, OperationFailure
-import tempfile
 
 # Load the Wav2Vec2 model for emotion classification
 MODEL_NAME = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
@@ -32,18 +32,25 @@ fs = gridfs.GridFS(db)
 
 # Emotion classification function
 def classify_emotion_from_audio(file_id):
+    '''
+    Classify the emotion from an audio file stored in MongoDB.
+    Args:
+        file_id (str): The ObjectId of the audio file in MongoDB.
+    Returns:
+        str: The predicted emotion label.
+    '''
 
     file_id_obj = ObjectId(file_id)
     grid_out = fs.get(file_id_obj)
-        
+
     # Create a temporary file to save the audio
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
         temp_file.write(grid_out.read())
         temp_file_path = temp_file.name
-        
+
     # Process the audio file using librosa
     speech, _ = librosa.load(temp_file_path, sr=SAMPLE_RATE)
-        
+
     # Convert speech to tensor (matching the model input type)
     input_values = torch.tensor(speech).unsqueeze(0)
 
@@ -70,13 +77,14 @@ def create_flask_app():
     Returns:
         Flask app: The configured Flask application instance.
     Routes:
-        /detect-emotion, received an ObjectId from webapp and adds the emotion to the
+        /detect-emotion, received an ObjectId from webapp and adds the emotion to the 
         corresponding document, then sends the emotion back to webapp
     """
     flask_app = Flask(__name__)
-    flask_app.secret_key = "KEY"
+    flask_app.secret_key =  "KEY"
 
     try:
+        client.admin.command("ping")
         client.admin.command("ping")
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except ConnectionFailure:
@@ -88,10 +96,11 @@ def create_flask_app():
 
     ################### Routes ###################
     # Stop the audio recording
-    @flask_app.route("/detect-emotion", methods=["POST"])
+    @flask_app.route('/detect-emotion', methods=['POST'])
     def emotion():
+        # Get the request data
         web_request = request.get_json()
-        file_id = web_request["fileId"]
+        file_id = web_request['fileId']
         emotion = classify_emotion_from_audio(file_id)
         db.fs.files.update_one(
             {"_id": ObjectId(file_id)}, {"$set": {"emotion": emotion}}

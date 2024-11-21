@@ -2,25 +2,20 @@
 
 ![Lint-free](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/lint.yml/badge.svg)
 
-Unit Test Badge Here
+[![Machine Learning Client CI](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/ml-client.yml/badge.svg)](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/ml-client.yml)
 
-
-# Containerized App Exercise
-
-Build a containerized app that uses machine learning. See [instructions](./instructions.md) for details.
+[![Web App CI](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/web-app.yml/badge.svg)](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/web-app.yml)
 
 ## Description
-
-Our project is an audio-based recognition system for activity. It's designed to analyze various sound events, such as clapping, snapping, and hitting a desk and classify them accordingly. The system leverages Docker for scalability, and operates in a containerized environment, as per the instructions.
 
 Our project is an Emotions Recogniton and Mental Health Advice app that used audio-based cognition to analyze and classify the user's emotions. The system analyzes the user's audio input and classifies the emotion, then provides the user with advice based on the detected emotions. The app uses multiple sub-systems and operates in a containerized environment, using Docker.  
 
 
 ## Configuration Instructions
 
-[Make sure you have Python 3.10 downloaded from HERE](https://www.python.org/downloads/)
+Make sure you have Python 3.10 downloaded from [HERE](https://www.python.org/downloads/)
 
-[Then, download Docker Desktop HERE](https://www.docker.com/products/docker-desktop/)
+Then, download Docker Desktop [HERE](https://www.docker.com/products/docker-desktop/)
 
 After installing Docker, make sure Docker Desktop is running.
 
@@ -35,7 +30,7 @@ Open terminal in local cloned repository (Terminal will automatically open at th
 >>> docker-compose up
 ```
 
-[Wait for build to finish then open the page in your browser at localhost 3000](http://localhost:3000/)
+Wait for build to finish then open the page in your browser at [localhost 3000](http://localhost:3000/)
 
 
 ## Usage
