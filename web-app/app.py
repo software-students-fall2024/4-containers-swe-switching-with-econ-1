@@ -15,7 +15,6 @@ Constants:
     CHUNK_SIZE (int): The chunk size for audio recording.
     OUTPUT_FILENAME (str): The default filename for the recorded audio.
 Functions:
-    record_audio(filename=OUTPUT_FILENAME):
     store_audio_in_mongodb(filename):
     create_flask_app():
 """
@@ -39,7 +38,7 @@ OUTPUT_FILENAME = "static/output.wav"
 
 uri = os.getenv("MONGO_URI", "mongodb://localhost/emotions")
 client = pymongo.MongoClient(uri)
-db = client['audio-analysis']
+db = client["audio-analysis"]
 fs = gridfs.GridFS(db)
 
 def store_audio_in_mongodb(file_obj, filename):
@@ -65,7 +64,6 @@ def create_flask_app():
     Routes:
         /: Redirects to the index page.
         /index: Renders the index.html template.
-        /start: Starts the audio recording process.
         /stop: Stops the audio recording process.
     """
 
@@ -81,21 +79,21 @@ def create_flask_app():
         print("Operation failed. Please verify your credentials or database configuration.")
     ################### Routes ###################
     # Redirect to the index page
-    @flask_app.route('/')
+    @flask_app.route("/")
     def home():
-        return redirect(url_for('index'))
-    @flask_app.route('/index', methods=['GET'])
+        return redirect(url_for("index"))
+    @flask_app.route("/index", methods=["GET"])
     def index():
-        return render_template('index.html')
+        return render_template("index.html")
     # Stop the audio recording
-    @flask_app.route('/stop', methods=['POST'])
+    @flask_app.route("/stop", methods=["POST"])
     def stop():
         print("Made it to /stop!")
-        if 'file' not in request.files:
+        if "file" not in request.files:
             return jsonify({"message": "No file part in request"}), 400
 
-        file = request.files['file']  # Get the file from the request
-        if file.filename == '':
+        file = request.files["file"]  # Get the file from the request
+        if file.filename == "":
             return jsonify({"message": "No file selected"}), 400
         try:
             file_id = store_audio_in_mongodb(file, filename=OUTPUT_FILENAME)
