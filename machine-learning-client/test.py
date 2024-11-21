@@ -4,14 +4,12 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from flask import Flask, jsonify, request
-import bson
 from bson import ObjectId
 import pymongo
 from pymongo.errors import ConnectionFailure, OperationFailure
 import librosa
 from transformers import Wav2Vec2ForSequenceClassification
-from emotion_detector import classify_emotion_from_audio
+from emotion_detector import classify_emotion_from_audio, create_flask_app
 
 
 @mock.patch("librosa.load")
@@ -106,45 +104,11 @@ def test_classify_emotion_from_audio_all_emotions(mock_model, mock_argmax, mock_
 
 
 @mock.patch("emotion_detector.classify_emotion_from_audio")
-def test_emotion_route(mock_classify_emotion):
-    """Test Flask route for emotion detection"""
-
-    # Mock classify_emotion_from_audio to return 'angry'
-    mock_classify_emotion.return_value = "angry"
-
-    # Create a Flask app instance and test client
-    app = Flask(__name__)
-
-    @app.route("/detect-emotion", methods=["POST"])
-    def emotion():
-        _ = request.get_json()
-
-        emotion = classify_emotion_from_audio()
-        return jsonify({"emotion": emotion}), 200
-
-    with app.test_client() as client:
-        # Send a mock request to the /detect-emotion route
-        response = client.post("/detect-emotion", json={"fileId": str(ObjectId())})
-
-        # Assert that response contains emotion
-        assert response.status_code == 200
-        assert response.json["emotion"] is not None
-
-
-@mock.patch("emotion_detector.classify_emotion_from_audio")
 def test_emotion_route_missing_fileid(mock_classify_emotion):
     """Test Flask route when no fileId is provided"""
     mock_classify_emotion.return_value = "neutral"
 
-    app = Flask(__name__)
-
-    @app.route("/detect-emotion", methods=["POST"])
-    def emotion():
-        web_request = request.get_json()
-        if "fileId" not in web_request:
-            return jsonify({"error": "fileId is required"}), 400
-        emotion = classify_emotion_from_audio()
-        return jsonify({"emotion": emotion}), 200
+    app = create_flask_app()
 
     with app.test_client() as client:
         # Send a request without fileId
@@ -160,18 +124,7 @@ def test_emotion_route_invalid_fileid(mock_classify_emotion):
     """Test Flask route when an invalid fileId is provided"""
     mock_classify_emotion.return_value = "neutral"
 
-    app = Flask(__name__)
-
-    @app.route("/detect-emotion", methods=["POST"])
-    def emotion():
-        web_request = request.get_json()
-        file_id = web_request["fileId"]
-        try:
-            ObjectId(file_id)
-        except bson.errors.InvalidId:
-            return jsonify({"error": "Invalid fileId"}), 400
-        emotion = classify_emotion_from_audio()
-        return jsonify({"emotion": emotion}), 200
+    app = create_flask_app()
 
     with app.test_client() as client:
         # Send a request with an invalid fileId
