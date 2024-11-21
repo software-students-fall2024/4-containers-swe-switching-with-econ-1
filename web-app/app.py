@@ -90,8 +90,9 @@ def create_flask_app():
     def index():
         return render_template("index.html")
 
-    @flask_app.route("/stop", methods=["POST"])
+    @flask_app.route("/stop", methods=["GET", "POST"])
     def stop():
+        #return jsonify({"message": "hello", "url": request.url})
         print("Made it to /stop!")
         if "file" not in request.files:
             return jsonify({"message": "No file part in request"}), 400
@@ -99,29 +100,19 @@ def create_flask_app():
         file = request.files["file"]
         if file.filename == "":
             return jsonify({"message": "No file selected"}), 400
-        try:
-            file_id = store_audio_in_mongodb(file, filename=OUTPUT_FILENAME)
-            url = "http://127.0.0.1:4000/detect-emotion"
-            params = {"fileId": str(file_id)}
-            response = requests.post(url, json=params, timeout=30)
-            if response.status_code == 200:
-                return jsonify(response.json())
-            print("Error request")
-            return jsonify({"status": "error sending request!"})
-        except pymongo.errors.PyMongoError as mongo_err:
-            print(f"MongoDB Error: {mongo_err}")
-            return jsonify({"message": "Database error", "error": str(mongo_err)}), 500
-        except requests.exceptions.RequestException as req_err:
-            print(f"Request Error: {req_err}")
-            return (
-                jsonify(
-                    {
-                        "message": "Error connecting to emotion detection service",
-                        "error": str(req_err),
-                    }
-                ),
-                502,
-            )
+        
+        file_id = store_audio_in_mongodb(file, filename=OUTPUT_FILENAME)
+        url = "http://ml_client:4000/detect-emotion"
+        params = {"fileId": str(file_id)}
+        response = requests.post(url, json=params, timeout=30)
+        return jsonify(response.json())
+        '''
+        if response.status_code == 200:
+            return jsonify(response.json())
+        print("Error request")
+        return jsonify({"status": "error sending request!"})
+        '''
+    
 
     return flask_app
 

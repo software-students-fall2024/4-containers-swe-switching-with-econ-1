@@ -78,7 +78,7 @@
                     formData.append('file', blob, 'recording.wav');
 
                     // Send the blob to '/stop
-                    const response = await fetch('/stop', 
+                    const response = await fetch('http://localhost:3000/stop', 
                         {method: 'POST',
                         body: formData,
                     });

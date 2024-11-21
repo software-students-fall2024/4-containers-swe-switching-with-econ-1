@@ -7,9 +7,9 @@ name = "pypi"
 pylint = "*"
 black = "*"
 pyaudio = "*"
-torch = "*"
 transformers = "*"
 librosa = "*"
+torch = "*"
 
 [dev-packages]
 
