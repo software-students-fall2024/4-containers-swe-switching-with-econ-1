@@ -1,6 +1,7 @@
 """Module for audio stuff"""
 
 import os
+import tempfile
 import pyaudio
 import torch
 from transformers import Wav2Vec2ForSequenceClassification
@@ -9,7 +10,6 @@ from flask import Flask, request, jsonify
 import pymongo
 import gridfs
 from bson import ObjectId
-import bson
 from pymongo.errors import ConnectionFailure, OperationFailure
 
 # Load the Wav2Vec2 model for emotion classification
@@ -22,7 +22,6 @@ CHANNELS = 1
 FORMAT = pyaudio.paInt16
 CHUNK_SIZE = 1024
 RECORD_SECONDS = 15
-OUTPUT_FILENAME = "../web-app/static/output.wav"
 
 # database connection
 uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/emotions")
@@ -31,11 +30,26 @@ db = client["audio-analysis"]
 fs = gridfs.GridFS(db)
 
 
-def classify_emotion_from_audio(filename=OUTPUT_FILENAME):
-    """Function to classify emotion from the recorded audio using Wav2Vec2"""
+# Emotion classification function
+def classify_emotion_from_audio(file_id):
+    '''
+    Classify the emotion from an audio file stored in MongoDB.
+    Args:
+        file_id (str): The ObjectId of the audio file in MongoDB.
+    Returns:
+        str: The predicted emotion label.
+    '''
 
-    # Load the audio file and preprocess it
-    speech, _ = librosa.load(filename, sr=SAMPLE_RATE)
+    file_id_obj = ObjectId(file_id)
+    grid_out = fs.get(file_id_obj)
+
+    # Create a temporary file to save the audio
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+        temp_file.write(grid_out.read())
+        temp_file_path = temp_file.name
+
+    # Process the audio file using librosa
+    speech, _ = librosa.load(temp_file_path, sr=SAMPLE_RATE)
 
     # Convert speech to tensor (matching the model input type)
     input_values = torch.tensor(speech).unsqueeze(0)
@@ -51,6 +65,8 @@ def classify_emotion_from_audio(filename=OUTPUT_FILENAME):
     emotion_labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
     predicted_emotion = emotion_labels[predicted_class]
 
+    os.remove(temp_file_path)
+
     return predicted_emotion
 
 
@@ -61,13 +77,14 @@ def create_flask_app():
     Returns:
         Flask app: The configured Flask application instance.
     Routes:
-        /detect-emotion, received an ObjectId from webapp and adds the emotion to the
+        /detect-emotion, received an ObjectId from webapp and adds the emotion to the 
         corresponding document, then sends the emotion back to webapp
     """
     flask_app = Flask(__name__)
-    flask_app.secret_key = "KEY"
+    flask_app.secret_key =  "KEY"
 
     try:
+        client.admin.command("ping")
         client.admin.command("ping")
         print("Pinged your deployment. You successfully connected to MongoDB!")
     except ConnectionFailure:
@@ -79,24 +96,12 @@ def create_flask_app():
 
     ################### Routes ###################
     # Stop the audio recording
-    @flask_app.route("/detect-emotion", methods=["POST"])
+    @flask_app.route('/detect-emotion', methods=['POST'])
     def emotion():
         # Get the request data
         web_request = request.get_json()
-
-        # Check if fileId exists in the request body
-        if "fileId" not in web_request:
-            return jsonify({"error": "fileId is required"}), 400
-
-        file_id = web_request["fileId"]
-
-        # Try to parse the fileId to ObjectId, if invalid return error
-        try:
-            ObjectId(file_id)
-        except bson.errors.InvalidId:
-            return jsonify({"error": "Invalid fileId"}), 400
-
-        emotion = classify_emotion_from_audio()
+        file_id = web_request['fileId']
+        emotion = classify_emotion_from_audio(file_id)
         db.fs.files.update_one(
             {"_id": ObjectId(file_id)}, {"$set": {"emotion": emotion}}
         )
