@@ -18,13 +18,10 @@
         <button id="stop-button" class="stop-button">Stop</button>
     </div>
 
-    <article class="clip" id="sound-clips">
-      </article>
       
 <script defer>
     const startButton = document.getElementById('start-button');
     const stopButton = document.getElementById('stop-button');
-    const soundClips = document.getElementById('sound-clips'); // Container for clips
     let mediaRecorder;
     let chunks = []; // Array to store recorded audio data
 
@@ -50,42 +47,24 @@
                 mediaRecorder.onstop = async () => {
                     console.log("Recorder stopped!");
 
-                    const clipContainer = document.createElement("article");
-                    const audio = document.createElement("audio");
-                    const deleteButton = document.createElement("button");
-
-                    clipContainer.classList.add("clip");
-                    audio.setAttribute("controls", "");
-                    deleteButton.textContent = "Delete";
-
-                    clipContainer.appendChild(audio);
-                    clipContainer.appendChild(deleteButton);
-                    soundClips.appendChild(clipContainer);
-
                     // Create audio Blob and URL
                     const blob = new Blob(chunks, { type: "audio/wav; codecs=opus" });
                     chunks = [];
-                    const audioURL = window.URL.createObjectURL(blob);
-                    audio.src = audioURL;
 
-                    // Delete button functionality
-                    deleteButton.onclick = () => {
-                        soundClips.removeChild(clipContainer);
-                    };
                     
                     // FormData to send blob to flask app
                     const formData = new FormData();
                     formData.append('file', blob, 'recording.wav');
 
                     // Send the blob to '/stop
-                    const response = await fetch('/stop', 
+                    const response = await fetch('http://localhost:3000/stop', 
                         {method: 'POST',
                         body: formData,
                     });
                     response_json = await response.json();
                     console.log(response_json);
                     const emotion = document.getElementsByClassName('emotion')[0];
-                    emotion.textContent = response_json['emotion'];
+                    emotion.textContent = response_json['advice'];
                 };
 
                 // Start recording
