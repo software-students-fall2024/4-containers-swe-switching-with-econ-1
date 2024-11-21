@@ -123,7 +123,7 @@ def create_flask_app():
                 502,
             )
 
-return flask_app
+    return flask_app
 
 
 if __name__ == "__main__":
