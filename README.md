@@ -2,7 +2,9 @@
 
 ![Lint-free](https://github.com/nyu-software-engineering/containerized-app-exercise/actions/workflows/lint.yml/badge.svg)
 
-Unit Test Badge Here
+[![Machine Learning Client CI](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/ml-client.yml/badge.svg)](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/ml-client.yml)
+
+[![Web App CI](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/web-app.yml/badge.svg)](https://github.com/software-students-fall2024/4-containers-swe-switching-with-econ-1/actions/workflows/web-app.yml)
 
 ## Description
 
@@ -11,9 +13,9 @@ Our project is an Emotions Recogniton and Mental Health Advice app that used aud
 
 ## Configuration Instructions
 
-[Make sure you have Python 3.10 downloaded from HERE](https://www.python.org/downloads/)
+Make sure you have Python 3.10 downloaded from [HERE](https://www.python.org/downloads/)
 
-[Then, download Docker Desktop HERE](https://www.docker.com/products/docker-desktop/)
+Then, download Docker Desktop [HERE](https://www.docker.com/products/docker-desktop/)
 
 After installing Docker, make sure Docker Desktop is running.
 
@@ -28,7 +30,7 @@ Open terminal in local cloned repository (Terminal will automatically open at th
 >>> docker-compose up
 ```
 
-[Wait for build to finish then open the page in your browser at localhost 3000](http://localhost:3000/)
+Wait for build to finish then open the page in your browser at [localhost 3000](http://localhost:3000/)
 
 
 ## Usage
