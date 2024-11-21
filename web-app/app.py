@@ -21,9 +21,6 @@ Functions:
 import os
 from flask import Flask, render_template, redirect, url_for, jsonify, request
 import pymongo
-# from dotenv import load_dotenv
-# from pymongo.server_api import ServerApi
-# from bson.objectid import ObjectId
 import pyaudio
 import gridfs
 import requests
@@ -41,19 +38,22 @@ client = pymongo.MongoClient(uri)
 db = client["audio-analysis"]
 fs = gridfs.GridFS(db)
 
+
 def store_audio_in_mongodb(file_obj, filename):
     """
     Stores an audio file in a MongoDB database using GridFS.
 
     Args:
+        file_obj: the file to be stored
         filename (str): The path to the audio file to be stored.
 
     Returns:
-        The objectID of the stored file
+        str: The ObjectId of the stored file
     """
     file_id = fs.put(file_obj, filename=filename)
     print(f"Audio file '{filename}' stored in MongoDB with ObjectId: {file_id}")
     return str(file_id)
+
 
 def create_flask_app():
     """
@@ -66,7 +66,6 @@ def create_flask_app():
         /index: Renders the index.html template.
         /stop: Stops the audio recording process.
     """
-
     flask_app = Flask(__name__)
     flask_app.secret_key ="KEY"
 
@@ -77,22 +76,24 @@ def create_flask_app():
         print("Failed to connect to MongoDB. Please check your connection.")
     except OperationFailure:
         print("Operation failed. Please verify your credentials or database configuration.")
+
     ################### Routes ###################
-    # Redirect to the index page
+
     @flask_app.route("/")
     def home():
         return redirect(url_for("index"))
+
     @flask_app.route("/index", methods=["GET"])
     def index():
         return render_template("index.html")
-    # Stop the audio recording
+
     @flask_app.route("/stop", methods=["POST"])
     def stop():
         print("Made it to /stop!")
         if "file" not in request.files:
             return jsonify({"message": "No file part in request"}), 400
 
-        file = request.files["file"]  # Get the file from the request
+        file = request.files["file"]
         if file.filename == "":
             return jsonify({"message": "No file selected"}), 400
         try:
