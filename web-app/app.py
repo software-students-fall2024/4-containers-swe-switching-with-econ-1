@@ -67,7 +67,7 @@ def get_advice(emotion):
         "I hear a lot of anger in your voice. It's totally understandable \
             to feel upset sometimes. You’re not alone in this.",
         "It seems like you're feeling frustrated. It's okay to express that \
-            anger and I'm here for you no matter what you're going through."
+            anger and I'm here for you no matter what you're going through.",
     ]
 
     disgust_advice = [
@@ -76,7 +76,7 @@ def get_advice(emotion):
         "I hear your discomfort. You don’t have to like everything and it's \
             okay to feel uneasy sometimes. Take it easy, I’m here for you.",
         "I can sense that you're feeling repulsed by something. It's okay to \
-            have those feelings and you don’t need to face them alone."
+            have those feelings and you don’t need to face them alone.",
     ]
 
     fear_advice = [
@@ -85,7 +85,7 @@ def get_advice(emotion):
         "I hear a lot of fear in your voice. It's a tough feeling, but you’re not \
             alone and I’m here to support you through it.",
         "It seems like you're feeling overwhelmed by fear. Whatever you're facing, \
-            you're stronger than you think and I’m here to help however I can."
+            you're stronger than you think and I’m here to help however I can.",
     ]
 
     happy_advice = [
@@ -94,7 +94,7 @@ def get_advice(emotion):
         "I hear the happiness in your voice and it’s contagious! It’s so nice to hear you \
             feeling this way and I’m really happy for you.",
         "It seems like you’re in a great mood today. Keep enjoying that positive energy \
-            and I'm here to celebrate it with you!"
+            and I'm here to celebrate it with you!",
     ]
 
     neutral_advice = [
@@ -103,7 +103,7 @@ def get_advice(emotion):
         "You seem composed and at ease right now, which can be such a comforting place to \
             be. I’m here to support you however you need.",
         "I hear that you’re in a neutral space and that’s okay. Not every day is full of \
-            highs or lows. Take it one step at a time."
+            highs or lows. Take it one step at a time.",
     ]
 
     sad_advice = [
@@ -112,7 +112,7 @@ def get_advice(emotion):
         "It seems like you're feeling heavy with sadness. I’m here for you and I want you to \
             know that it's okay to feel down sometimes.",
         "I hear the sadness in your voice. It’s tough to feel this way, but you're not alone \
-            in this. Talk to anyone you need to."
+            in this. Talk to anyone you need to.",
     ]
 
     suprise_advice = [
@@ -121,27 +121,26 @@ def get_advice(emotion):
         "It seems like something unexpected has happened. Surprises can be overwhelming, \
             but whatever you're going through, I’m here for you.",
         "I hear the surprise in your voice. It’s okay to feel a little shaken by the \
-            unexpected and I’m here to support you through it."
+            unexpected and I’m here to support you through it.",
     ]
     advice = ""
     if emotion == "angry":
         advice = random.choice(angry_advice)
-    if emotion == "disgust":
+    elif emotion == "disgust":
         advice = random.choice(disgust_advice)
-    if emotion == "fear":
+    elif emotion == "fear":
         advice = random.choice(fear_advice)
-    if emotion == "happy":
+    elif emotion == "happy":
         advice = random.choice(happy_advice)
-    if emotion == "neutral":
+    elif emotion == "neutral":
         advice = random.choice(neutral_advice)
-    if emotion == "sad":
+    elif emotion == "sad":
         advice = random.choice(sad_advice)
-    if emotion == "surprise":
+    elif emotion == "surprise":
         advice = random.choice(suprise_advice)
     else:
-        return "Unknown emotion."
+        advice = "Unknown emotion."
     return advice
-    ################### Routes ###################
 
 def create_flask_app():
     """
@@ -167,6 +166,7 @@ def create_flask_app():
             "Operation failed. Please verify your credentials or database configuration."
         )
 
+    ################### Routes ###################
     @flask_app.route("/")
     def home():
         return redirect(url_for("index"))
@@ -177,7 +177,6 @@ def create_flask_app():
 
     @flask_app.route("/stop", methods=["GET", "POST"])
     def stop():
-        #return jsonify({"message": "hello", "url": request.url})
         print("Made it to /stop!")
         if "file" not in request.files:
             return jsonify({"message": "No file part in request"}), 400
@@ -190,8 +189,9 @@ def create_flask_app():
         url = "http://ml_client:4000/detect-emotion"
         params = {"fileId": str(file_id)}
         response = requests.post(url, json=params, timeout=30)
-        advice = get_advice(response.json()["emotion"])
-        return jsonify({"advice": advice})
+        emotion = response.json()["emotion"]
+        advice = get_advice(emotion)
+        return jsonify({"emotion": emotion, "advice": advice})
 
     return flask_app
 
