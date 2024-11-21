@@ -102,6 +102,7 @@ def test_classify_emotion_from_audio_all_emotions(mock_model, mock_argmax, mock_
         # Assertions
         assert emotion_result == emotion
 
+
 @mock.patch("emotion_detector.classify_emotion_from_audio")
 def test_emotion_route_missing_fileid(mock_classify_emotion):
     """Test Flask route when no fileId is provided"""
