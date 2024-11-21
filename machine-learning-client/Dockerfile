@@ -10,4 +10,6 @@ RUN pip3 install -r requirements.txt
 
 ADD . .
 
-CMD [ "python", "EmotionDetector.py"]
+EXPOSE 4000
+
+CMD [ "python", "emotion_detector.py"]
