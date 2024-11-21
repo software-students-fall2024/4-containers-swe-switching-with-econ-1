@@ -3,7 +3,6 @@ from unittest import mock
 import numpy as np
 import pytest
 import torch
-from emotion_detector import classify_emotion_from_audio
 from flask import Flask, jsonify, request
 import bson
 from bson import ObjectId
@@ -11,6 +10,7 @@ import pymongo
 from pymongo.errors import ConnectionFailure, OperationFailure
 import librosa
 from transformers import Wav2Vec2ForSequenceClassification
+from emotion_detector import classify_emotion_from_audio
 
 @mock.patch('librosa.load')
 @mock.patch('torch.argmax')
