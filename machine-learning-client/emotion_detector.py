@@ -33,13 +33,13 @@ fs = gridfs.GridFS(db)
 
 # Emotion classification function
 def classify_emotion_from_audio(filename):
-    '''
+    """
     Classify the emotion from an audio file stored in MongoDB.
     Args:
         file_id (str): The ObjectId of the audio file in MongoDB.
     Returns:
         str: The predicted emotion label.
-    '''
+    """
 
     # Process the audio file using librosa
     speech, _ = librosa.load(filename, sr=SAMPLE_RATE)
@@ -72,7 +72,7 @@ def create_flask_app():
         corresponding document, then sends the emotion back to webapp
     """
     flask_app = Flask(__name__)
-    flask_app.secret_key =  "KEY"
+    flask_app.secret_key = "KEY"
 
     try:
         client.admin.command("ping")
@@ -87,11 +87,11 @@ def create_flask_app():
 
     ################### Routes ###################
     # Stop the audio recording
-    @flask_app.route('/detect-emotion', methods=['POST'])
+    @flask_app.route("/detect-emotion", methods=['POST'])
     def emotion():
         # Get the request data
         web_request = request.get_json()
-        file_id = web_request.get('fileId')
+        file_id = web_request.get("fileId")
         if not file_id:
             return jsonify({"error": "fileId is required"}), 400
 
