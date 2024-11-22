@@ -9,8 +9,9 @@ import librosa
 from flask import Flask, request, jsonify
 import pymongo
 import gridfs
-from bson import ObjectId
+from bson import ObjectId, errors
 from pymongo.errors import ConnectionFailure, OperationFailure
+from gridfs.errors import NoFile
 
 # Load the Wav2Vec2 model for emotion classification
 MODEL_NAME = "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition"
@@ -31,7 +32,7 @@ fs = gridfs.GridFS(db)
 
 
 # Emotion classification function
-def classify_emotion_from_audio(file_id):
+def classify_emotion_from_audio(filename):
     '''
     Classify the emotion from an audio file stored in MongoDB.
     Args:
@@ -40,16 +41,8 @@ def classify_emotion_from_audio(file_id):
         str: The predicted emotion label.
     '''
 
-    file_id_obj = ObjectId(file_id)
-    grid_out = fs.get(file_id_obj)
-
-    # Create a temporary file to save the audio
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
-        temp_file.write(grid_out.read())
-        temp_file_path = temp_file.name
-
     # Process the audio file using librosa
-    speech, _ = librosa.load(temp_file_path, sr=SAMPLE_RATE)
+    speech, _ = librosa.load(filename, sr=SAMPLE_RATE)
 
     # Convert speech to tensor (matching the model input type)
     input_values = torch.tensor(speech).unsqueeze(0)
@@ -64,8 +57,6 @@ def classify_emotion_from_audio(file_id):
     # Emotion labels based on the model's fine-tuning
     emotion_labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
     predicted_emotion = emotion_labels[predicted_class]
-
-    os.remove(temp_file_path)
 
     return predicted_emotion
 
@@ -100,8 +91,25 @@ def create_flask_app():
     def emotion():
         # Get the request data
         web_request = request.get_json()
-        file_id = web_request['fileId']
-        emotion = classify_emotion_from_audio(file_id)
+        file_id = web_request.get('fileId')
+        if not file_id:
+            return jsonify({"error": "fileId is required"}), 400
+
+        try:
+            file_id_obj = ObjectId(file_id)
+        except errors.InvalidId:
+            return jsonify({"error": "Invalid fileId"}), 400
+
+        try:
+            file = fs.get(file_id_obj)
+        except NoFile:
+            return jsonify({"error": "Invalid fileId"}), 400
+        # Create a temporary file to save the audio
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            temp_file.write(file.read())
+            temp_file_path = temp_file.name
+        emotion = classify_emotion_from_audio(temp_file_path)
+        os.remove(temp_file_path)
         db.fs.files.update_one(
             {"_id": ObjectId(file_id)}, {"$set": {"emotion": emotion}}
         )
