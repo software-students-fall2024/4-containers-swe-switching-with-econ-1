@@ -68,7 +68,7 @@ def create_flask_app():
     Returns:
         Flask app: The configured Flask application instance.
     Routes:
-        /detect-emotion, received an ObjectId from webapp and adds the emotion to the 
+        /detect-emotion, received an ObjectId from webapp and adds the emotion to the
         corresponding document, then sends the emotion back to webapp
     """
     flask_app = Flask(__name__)
@@ -87,7 +87,7 @@ def create_flask_app():
 
     ################### Routes ###################
     # Stop the audio recording
-    @flask_app.route("/detect-emotion", methods=['POST'])
+    @flask_app.route("/detect-emotion", methods=["POST"])
     def emotion():
         # Get the request data
         web_request = request.get_json()
