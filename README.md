@@ -32,6 +32,7 @@ Open terminal in local cloned repository (Terminal will automatically open at th
 
 Wait for build to finish then open the page in your browser at [localhost 3000](http://localhost:3000/)
 
+It may take some time for the containers to connect, please wait for the machine learning client to inform you that it has connected to MongoDB and is running on port 4000 (up to 5 minutes) before use.
 
 ## Usage
 

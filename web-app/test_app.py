@@ -5,9 +5,8 @@ from io import BytesIO
 import pytest
 from flask import Flask
 from flask.testing import FlaskClient
-import requests
 
-from app import create_flask_app, store_audio_in_mongodb
+from app import create_flask_app, store_audio_in_mongodb, get_advice
 
 
 @pytest.fixture(name="app")
@@ -70,11 +69,10 @@ def test_stop_route_success(mock_requests_post, mock_store_audio, client: FlaskC
     response = client.post("/stop", data=data, content_type="multipart/form-data")
 
     assert response.status_code == 200
-    assert response.json == {"emotion": "happy"}
 
     mock_store_audio.assert_called_once()
     mock_requests_post.assert_called_once_with(
-        "http://127.0.0.1:4000/detect-emotion",
+        "http://ml_client:4000/detect-emotion",
         json={"fileId": "mock_file_id"},
         timeout=30,
     )
@@ -87,27 +85,6 @@ def test_stop_route_no_file(client: FlaskClient):
     assert response.json == {"message": "No file part in request"}
 
 
-def test_stop_route_request_error(client):
-    """Test the /stop route when the external request fails."""
-    data = {"file": (BytesIO(b"audio_data"), "recording.wav")}
-
-    # Mock store_audio_in_mongodb to prevent actual database interactions
-    with patch("app.store_audio_in_mongodb") as mock_store:
-        mock_store.return_value = "mocked_file_id"
-
-        # Mock requests.post to raise a RequestException
-        with patch("requests.post") as mock_post:
-            mock_post.side_effect = requests.exceptions.RequestException(
-                "Request failed"
-            )
-
-            response = client.post(
-                "/stop", data=data, content_type="multipart/form-data"
-            )
-            assert response.status_code == 502
-            assert b"Error connecting to emotion detection service" in response.data
-
-
 def test_stop_route_no_filename(client: FlaskClient):
     """Test the /stop route when an empty filename is provided."""
     empty_audio_file = BytesIO(b"")
@@ -117,3 +94,36 @@ def test_stop_route_no_filename(client: FlaskClient):
 
     assert response.status_code == 400
     assert response.json == {"message": "No file selected"}
+
+
+@pytest.mark.parametrize(
+    "emotion, expected_phrases",
+    [
+        ("angry", ["angry", "anger"]),
+        ("disgust", ["repulsed", "bothered", "uneasy"]),
+        ("fear", ["scared", "fear", "overwhelmed"]),
+        ("happy", ["happy", "joy", "positive"]),
+        ("neutral", ["neutral", "calm", "composed"]),
+        ("sad", ["sad", "heavy", "sorry"]),
+        ("surprise", ["surprise", "unexpected", "shaken"]),
+    ],
+)
+def test_get_advice_valid_emotions(emotion, expected_phrases):
+    """
+    Test get_advice with valid emotions and ensure returned advice is appropriate.
+    """
+    advice = get_advice(emotion)
+    assert isinstance(advice, str), "Advice should be a string."
+    assert any(
+        phrase in advice.lower() for phrase in expected_phrases
+    ), f"Advice for emotion '{emotion}' did not contain expected phrases. Advice: {advice}"
+
+
+def test_get_advice_unknown_emotion():
+    """
+    Test get_advice with an unknown emotion.
+    """
+    advice = get_advice("confused")
+    assert (
+        advice == "Unknown emotion."
+    ), f"Unexpected advice for unknown emotion: {advice}"

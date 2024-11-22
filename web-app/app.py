@@ -63,7 +63,7 @@ def get_advice(emotion):
     Get advice based on the detected emotion.
     """
     angry_advice = [
-        "It sounds like you're feeling really angry right now. It's [\
+        "It sounds like you're feeling really angry right now. It's \
             okay to feel that way. Sometimes, just letting it out can help.",
         "I hear a lot of anger in your voice. It's totally understandable \
             to feel upset sometimes. You’re not alone in this.",
