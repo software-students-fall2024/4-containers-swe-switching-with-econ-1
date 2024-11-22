@@ -74,7 +74,7 @@ def test_stop_route_success(mock_requests_post, mock_store_audio, client: FlaskC
     mock_requests_post.assert_called_once_with(
         "http://ml_client:4000/detect-emotion",
         json={"fileId": "mock_file_id"},
-        timeout=30,
+        timeout=100,
     )
 
 

@@ -190,7 +190,7 @@ def create_flask_app():
         file_id = store_audio_in_mongodb(file, filename=OUTPUT_FILENAME)
         url = "http://ml_client:4000/detect-emotion"
         params = {"fileId": str(file_id)}
-        response = requests.post(url, json=params, timeout=30)
+        response = requests.post(url, json=params, timeout=100)
         emotion = response.json()["emotion"]
         advice = get_advice(emotion)
         return jsonify({"emotion": emotion, "advice": advice})
